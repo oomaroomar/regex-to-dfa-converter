@@ -106,7 +106,27 @@ export function astToEpsilonNFA(ast: Node) {
       }
       return lastChild;
     }
-    throw new Error("Unexpected node type: " + node.type);
+    if (node.type === "union") {
+      const firstChild = walk(node.children[0]!, attachTo);
+      const secondChild = walk(node.children[1]!, attachTo);
+      const unionStartId = counter.toString();
+      counter++;
+      nfa.addVertex(unionStartId);
+      nfa.addEdge(unionStartId, firstChild, "e");
+      nfa.addEdge(unionStartId, secondChild, "e");
+      return unionStartId;
+    }
+    if (node.type === "*") {
+      const kleeneId = counter.toString();
+      counter++;
+      nfa.addVertex(kleeneId);
+      nfa.addEdge(kleeneId, attachTo, "e");
+      const child = walk(node.children[0]!, kleeneId);
+      nfa.addEdge(kleeneId, child, "e");
+      return kleeneId;
+    }
+
+    throw new Error("Unexpected node type from " + JSON.stringify(node));
   }
 
   return nfa;

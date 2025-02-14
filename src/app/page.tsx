@@ -6,6 +6,7 @@ import { Input } from "~/components/ui/input";
 
 export default function HomePage() {
   const [regex, setRegex] = useState("");
+  const [convert, setConvert] = useState(false);
   const [regexToConvert, setRegexToConvert] = useState("a");
 
   return (
@@ -16,6 +17,7 @@ export default function HomePage() {
           onSubmit={(e) => {
             e.preventDefault();
             setRegexToConvert(regex);
+            setConvert(true);
           }}
         >
           <Input
@@ -29,7 +31,7 @@ export default function HomePage() {
       </div>
       <div className="flex h-full min-h-96 flex-col gap-2">
         <h1>DFA here</h1>
-        <DFA regex={regexToConvert} />
+        {convert && <DFA regex={regexToConvert} />}
       </div>
     </main>
   );

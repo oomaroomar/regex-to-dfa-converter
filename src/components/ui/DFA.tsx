@@ -1,15 +1,11 @@
-import { astToEpsilonNFA, regexToAST } from "~/lib/math";
+import { astToEpsilonNFA, epsilonNFAtoNFA, regexToAST } from "~/lib/math";
 
 export default function DFA({ regex }: { regex: string }) {
-  const ast = regexToAST("(" + regex + ")");
-  console.log(ast);
-  const nfa = astToEpsilonNFA(ast);
-  console.log(nfa.getAdjacencyList());
-  return <div className="h-full">{JSON.stringify(nfa)}</div>;
-}
-
-// function convertRegexToEpsilonNFA(regex: string) {}
-
-function convertEpsilonNFAtoDFA(epsilonNFA: string) {
-  return epsilonNFA;
+  const ast = regexToAST("($" + regex + ")");
+  console.log("ast", ast);
+  const enfa = astToEpsilonNFA(ast);
+  console.log("enfa", enfa);
+  const nfa = epsilonNFAtoNFA(enfa);
+  console.log("nfa", nfa);
+  return <div className="h-full">{JSON.stringify(enfa)}</div>;
 }

@@ -69,7 +69,6 @@ export function regexToAST(regex: string): Node {
 
     if (regex[i] === "+") {
       i--;
-      console.log("union parent children", parent.children);
       const node = {
         type: "union" as const,
         children: [parent.children.pop()!],
@@ -213,12 +212,15 @@ function getEpsilonClosure(enfa: Graph, vertex: string) {
     }
   }
   walk(vertex);
+  if (vertex === "*1") {
+    console.log("closure of ", vertex, closure);
+  }
   return closure;
 }
 
-function getLetterMoves(enfa: Graph, vertex: string) {
+function getLetterMoves(G: Graph, vertex: string) {
   const moves = new Set<{ vertex: string; letter: string }>();
-  const edges = enfa.getEdges(vertex);
+  const edges = G.getEdges(vertex);
   if (!edges) return moves;
   for (const edge of edges) {
     if (edge.letter !== "e") {
@@ -276,11 +278,11 @@ export function epsilonNFAtoNFA(enfa: Graph) {
     }
   }
   // Remove predictably useless edges
-  for (const vertex of nfa.getAdjacencyList().keys()) {
-    if (vertex.includes("*")) {
-      nfa.removeVertex(vertex);
-    }
-  }
+  // for (const vertex of nfa.getAdjacencyList().keys()) {
+  //   if (vertex.includes("*")) {
+  //     nfa.removeVertex(vertex);
+  //   }
+  // }
   // Remove vertices accessible only by previously existent epsilon edges
   // for (const [vertex, edges] of nfa.getIncomingEdges().entries()) {
   //   if (vertex === "start") continue;

@@ -77,7 +77,15 @@ export class Graph {
     return this.adjacencyList;
   }
 
-  getIncomingEdges() {
+  // Such type safety, much wow
+  getIncomingEdges(): Map<string, { vertex: string; letter: string }[]>;
+  getIncomingEdges(
+    vertex: string,
+  ): { vertex: string; letter: string }[] | undefined;
+  getIncomingEdges(vertex?: string) {
+    if (vertex) {
+      return this.incomingEdges.get(vertex);
+    }
     return this.incomingEdges;
   }
 

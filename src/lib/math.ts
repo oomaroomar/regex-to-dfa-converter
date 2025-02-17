@@ -183,12 +183,17 @@ export function astToEpsilonNFA(ast: Node) {
       return firstChild;
     }
     if (node.type === "*") {
-      const kleeneId = "*" + counter.toString();
-      counter++;
-      nfa.addVertex(kleeneId);
+      nfa.addVertex("temp");
+      // nfa.addEdge(kleeneId, attachTo, "e");
+      const kleeneId = walk(node.children[0]!, "temp");
+      const incomingEdges = nfa.getIncomingEdges("temp");
+      if (incomingEdges) {
+        for (const edge of incomingEdges) {
+          nfa.addEdge(edge.vertex, kleeneId, edge.letter);
+        }
+      }
       nfa.addEdge(kleeneId, attachTo, "e");
-      const child = walk(node.children[0]!, kleeneId);
-      nfa.addEdge(kleeneId, child, "e");
+      nfa.removeVertex("temp");
       return kleeneId;
     }
 

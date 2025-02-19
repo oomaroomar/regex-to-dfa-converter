@@ -1,7 +1,5 @@
 import { Graph } from './graph.ts'
 
-const S = ['a', 'b', 'e']
-
 // Reverse order iteration allows us to avoid reordering the tree when encountering a Kleene star
 // Union, however, will require reordering
 type Leaf = {
@@ -17,6 +15,15 @@ type Node = {
   children: (Leaf | Node)[]
 }
 
+const SpecialCharacters = ['(', ')', '*', '+', '$']
+
+// These values are used to position the nodes of the graph
+// The name xRadius is used to imply that 0 + xRadius is the right edge of the screen
+const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)
+const xRadius = (vw * 0.9) / 2
+const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0)
+const maxY = vh * 0.9
+
 export function regexToAST(regex: string): Node {
   let i = regex.length - 1
   const tree = {
@@ -25,7 +32,7 @@ export function regexToAST(regex: string): Node {
   } as Node
   let isEnd = true
   function walk(parent: { type: string; children: (Leaf | Node)[] }): Leaf | Node {
-    if (S.includes(regex[i] ?? '')) {
+    if (!SpecialCharacters.includes(regex[i] ?? '')) {
       if (isEnd) {
         isEnd = false
         return {
@@ -103,7 +110,7 @@ export function regexToAST(regex: string): Node {
 
 export function astToEpsilonNFA(ast: Node) {
   const nfa = new Graph()
-  nfa.addVertex('final')
+  nfa.addVertex('final', { x: xRadius / 2, y: 0 })
   nfa.makeFinal('final')
   let counter = 0
   walk(ast, 'final')
@@ -215,7 +222,6 @@ function getEpsilonClosure(enfa: Graph, vertex: string) {
     }
   }
   walk(vertex)
-  // console.log('closure of ', vertex, closure)
   return closure
 }
 
@@ -232,23 +238,7 @@ function getLetterMoves(G: Graph, vertex: string) {
 }
 
 export function epsilonNFAtoNFA(enfa: Graph) {
-  // From here to the line that starts "const nfa = new Graph" is to make the new graph a new object,
-  // not a reference to the old one
-  const adjList = new Map<string, { vertex: string; letter: string }[]>()
-  for (const [vertex, edges] of enfa.getAdjacencyList().entries()) {
-    adjList.set(
-      vertex,
-      edges.map((edge) => ({ vertex: edge.vertex, letter: edge.letter })),
-    )
-  }
-  const incomingEdges = new Map<string, { vertex: string; letter: string }[]>()
-  for (const [vertex, edges] of enfa.getIncomingEdges().entries()) {
-    incomingEdges.set(
-      vertex,
-      edges.map((edge) => ({ vertex: edge.vertex, letter: edge.letter })),
-    )
-  }
-  const nfa = new Graph(adjList, incomingEdges, enfa.getFinalStates())
+  const nfa = enfa.copyGraph()
   // Add epsilon closures
   for (const [vertex, edges] of nfa.getAdjacencyList().entries()) {
     const closure = getEpsilonClosure(nfa, vertex)
@@ -278,23 +268,96 @@ export function epsilonNFAtoNFA(enfa: Graph) {
       }
     }
   }
-  // Remove predictably useless edges
-  // for (const vertex of nfa.getAdjacencyList().keys()) {
-  //   if (vertex.includes("*")) {
-  //     nfa.removeVertex(vertex);
-  //   }
-  // }
+
+  // Assign layout
+  nfa.genLayout('final', 0, -maxY / 2)
+
   // Remove vertices accessible only by previously existent epsilon edges
-  // for (const [vertex, edges] of nfa.getIncomingEdges().entries()) {
-  //   if (vertex === "start") continue;
-  //   let allEdgesEpsilon = true;
-  //   for (const edge of edges) {
-  //     if (edge.letter !== "e") {
-  //       allEdgesEpsilon = false;
-  //       break;
-  //     }
-  //   }
-  //   if (allEdgesEpsilon) nfa.removeVertex(vertex);
-  // }
+  for (const [vertex, edges] of nfa.getIncomingEdges().entries()) {
+    if (vertex === 'start') continue
+    let allEdgesEpsilon = true
+    for (const edge of edges) {
+      if (edge.letter !== 'e') {
+        allEdgesEpsilon = false
+        break
+      }
+    }
+    if (allEdgesEpsilon) nfa.removeVertex(vertex)
+  }
+  // Remove unaccessible vertices
+  nfa.removeInaccessibleVertices()
+
   return nfa
+}
+
+// Powerset construction
+export function nfaToDFA(nfa: Graph) {
+  const dfa = new Graph()
+  const powerSet = getPowerSet(new Set(nfa.getAdjacencyList().keys()))
+  powerSet.forEach((subset) => {
+    dfa.addVertex(Array.from(subset).join(', '))
+  })
+  // For each vertex in the NFA, create a new vertex in the DFA
+  // and add edges to the appropriate subsets of the powerset
+  nfa.getAdjacencyList().forEach((edges, vertex) => {
+    const map = new Map<string, Set<string>>()
+    dfa.addVertex(vertex)
+    edges.forEach((edge) => {
+      const currentSet = map.get(edge.letter) ?? new Set<string>()
+      currentSet.add(edge.vertex)
+      map.set(edge.letter, currentSet)
+    })
+    map.forEach((set, letter) => {
+      dfa.addEdge(vertex, Array.from(set).join(', '), letter)
+    })
+  })
+  // Union algorithm
+  powerSet.forEach((subset) => {
+    if (subset.size === 1) return
+    const vertex = Array.from(subset).join(', ')
+    dfa.addVertex(vertex)
+    const map = new Map<string, Set<string>>()
+    subset.forEach((vertex) => {
+      const edges = nfa.getEdges(vertex)
+      if (!edges) return
+      edges.forEach((edge) => {
+        const currentSet = map.get(edge.letter) ?? new Set<string>()
+        const realVertices = edge.vertex.split(', ')
+        realVertices.forEach((v) => {
+          currentSet.add(v)
+        })
+        map.set(edge.letter, currentSet)
+      })
+    })
+    map.forEach((set, letter) => {
+      dfa.addEdge(vertex, Array.from(set).join(', '), letter)
+    })
+  })
+  dfa.getIncomingEdges().forEach((edges, vertex) => {
+    if (vertex === 'start') return
+  })
+  // dfa.removeInaccessibleVertices()
+  dfa.getAdjacencyList().forEach((edges, vertex) => {
+    if (vertex.includes('final')) {
+      dfa.makeFinal(vertex)
+    }
+  })
+  dfa.removeInaccessibleVertices()
+  const someFinalState = Array.from(dfa.getFinalStates())[0]
+  console.log('someFinalState', someFinalState)
+  dfa.genLayout(someFinalState, 0, -maxY / 2)
+
+  return dfa
+}
+
+function getPowerSet<T>(set: Set<T>) {
+  const subsets = getAllSubsets(Array.from(set))
+  return new Set(subsets.map((subset) => new Set(subset)))
+}
+
+function getAllSubsets<T>(theArray: T[]) {
+  return theArray.reduce(
+    (subsets, value) => subsets.concat(subsets.map((set) => [value, ...set])),
+    [[]] as T[][],
+  )
 }

@@ -17,6 +17,7 @@ export function graphToVNetworkGraph(graph: Graph) {
   const vNFAedges = ref<Record<string, vEdge>>({})
   const layouts = ref<Record<string, Record<string, { x: number; y: number }>>>({ nodes: {} })
   const maxY = Math.max(...Object.values(graph.getLayout()).map((layout) => layout.y))
+  let counter = 0
   graph.getAdjacencyList().forEach((edges, vertex) => {
     let selfEdges = ''
     edges.forEach((edge) => {
@@ -25,8 +26,9 @@ export function graphToVNetworkGraph(graph: Graph) {
         selfEdges += edge.letter
       }
     })
-    const name = selfEdges.length > 0 ? vertex + ': ' + selfEdges : vertex
-    vNFAnodes.value[vertex] = { name: name, color: 'white' }
+    const name = selfEdges.length > 0 ? counter.toString() + ': ' + selfEdges : counter.toString()
+    vNFAnodes.value[vertex] = { name: vertex === 'start' ? 'start' : name, color: 'white' }
+    counter++
     if (graph.getFinalStates().has(vertex)) {
       vNFAnodes.value[vertex].color = '#4BB543'
     }
@@ -50,7 +52,7 @@ export const vConfig = reactive(
     node: {
       normal: {
         color: (node) => node.color,
-        radius: 20,
+        radius: 25,
         strokeWidth: 2,
         strokeColor: '#000000',
       },

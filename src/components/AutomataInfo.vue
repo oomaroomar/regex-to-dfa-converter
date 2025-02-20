@@ -13,6 +13,10 @@
         includes "start".
       </li>
       <li>The nodes are draggable. So you can position them as you like.</li>
+      <li>
+        Sink nodes are not displayed. If an edge is missing from the DFA, it means the computation
+        has reached a sink state.
+      </li>
     </ul>
   </div>
 </template>

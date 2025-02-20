@@ -157,6 +157,7 @@ export function astToEpsilonNFA(ast: Node) {
       }
 
       nfa.addEdge(firstChild, secondChild, 'e')
+      nfa.addEdge(secondChild, firstChild, 'e')
 
       return firstChild
     }
@@ -222,7 +223,6 @@ export function epsilonNFAtoNFA(enfa: Graph) {
       const letterMoves = getLetterMoves(nfa, v)
       for (const letterMove of letterMoves) {
         nfa.addEdge(vertex, letterMove.vertex, letterMove.letter)
-        console.log('Added: from ', vertex, ' to ', letterMove.vertex, ' with ', letterMove.letter)
         const closure2 = getEpsilonClosure(nfa, letterMove.vertex)
         for (const v2 of closure2) {
           nfa.addEdge(vertex, v2, letterMove.letter)
@@ -238,12 +238,10 @@ export function epsilonNFAtoNFA(enfa: Graph) {
       }
     }
   }
-  console.log('NFA ADJ LIST: ', nfa.getAdjacencyList())
   // Remove epsilon edges
   for (const [vertex, edges] of nfa.getAdjacencyList().entries()) {
     for (const edge of edges) {
       if (edge.letter === 'e') {
-        console.log('Removing edge: from ', vertex, ' to ', edge.vertex, ' with ', edge.letter)
         nfa.removeEdge(vertex, edge.vertex, edge.letter)
       }
     }

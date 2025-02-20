@@ -14,9 +14,13 @@ const dfa = ref<Graph>()
 const submit = () => {
   regex.value = '($' + text.value + ')'
   const ast = regexToAST(regex.value)
+  console.log('AST: ', ast)
   epsilonNFA.value = astToEpsilonNFA(ast)
+  console.log('Epsilon NFA: ', epsilonNFA.value)
   nfa.value = epsilonNFAtoNFA(epsilonNFA.value)
+  console.log('NFA: ', nfa.value)
   dfa.value = nfaToDFA(nfa.value)
+  console.log('DFA: ', dfa.value)
 }
 </script>
 

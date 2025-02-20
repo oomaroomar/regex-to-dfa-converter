@@ -50,12 +50,12 @@ export const vConfig = reactive(
     node: {
       normal: {
         color: (node) => node.color,
-        radius: 42,
+        radius: 20,
         strokeWidth: 2,
         strokeColor: '#000000',
       },
       label: {
-        fontSize: 26,
+        fontSize: 16,
         direction: 'center',
       },
     },
@@ -64,7 +64,7 @@ export const vConfig = reactive(
         angle: 355,
       },
       label: {
-        fontSize: 20,
+        fontSize: 16,
         color: '#000000',
       },
       normal: {

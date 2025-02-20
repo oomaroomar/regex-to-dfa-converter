@@ -149,14 +149,14 @@ export class Graph {
     if (edges) {
       this.adjacencyList.set(
         vertex1,
-        edges.filter((edge) => edge.letter !== letter && edge.vertex !== vertex2),
+        edges.filter((edge) => edge.letter !== letter || edge.vertex !== vertex2),
       )
     }
     const incomingEdges = this.incomingEdges.get(vertex2)
     if (incomingEdges) {
       this.incomingEdges.set(
         vertex2,
-        incomingEdges.filter((edge) => edge.vertex !== vertex1 && edge.letter !== letter),
+        incomingEdges.filter((edge) => edge.vertex !== vertex1 || edge.letter !== letter),
       )
     }
   }

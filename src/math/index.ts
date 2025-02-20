@@ -150,38 +150,14 @@ export function astToEpsilonNFA(ast: Node) {
       const secondChild = walk(node.children[1]!, attachTo)
       if (firstChild === 'start' || secondChild === 'start') {
         // Get copies. Not references.
-        const firstChildEdges = nfa
-          .getEdges(firstChild)
-          ?.map((edge) => ({ vertex: edge.vertex, letter: edge.letter }))
-        const secondChildEdges = nfa
-          .getEdges(secondChild)
-          ?.map((edge) => ({ vertex: edge.vertex, letter: edge.letter }))
-        nfa.removeVertex(firstChild)
-        nfa.removeVertex(secondChild)
-        nfa.addVertex('start')
-        if (firstChildEdges) {
-          for (const edge of firstChildEdges) {
-            nfa.addEdge('start', edge.vertex, edge.letter)
-          }
-        }
-        if (secondChildEdges) {
-          for (const edge of secondChildEdges) {
-            nfa.addEdge('start', edge.vertex, edge.letter)
-          }
-        }
+        const childThatIsNotStart = firstChild === 'start' ? secondChild : firstChild
+        nfa.addEdge('start', childThatIsNotStart, 'e')
+
         return 'start'
       }
 
-      const secondChildEdges = nfa
-        .getEdges(secondChild)
-        ?.map((edge) => ({ vertex: edge.vertex, letter: edge.letter }))
+      nfa.addEdge(firstChild, secondChild, 'e')
 
-      nfa.removeVertex(secondChild)
-      if (secondChildEdges) {
-        for (const edge of secondChildEdges) {
-          nfa.addEdge(firstChild, edge.vertex, edge.letter)
-        }
-      }
       return firstChild
     }
     if (node.type === '*') {
@@ -201,7 +177,7 @@ export function astToEpsilonNFA(ast: Node) {
 
     throw new Error('Unexpected node type from ' + JSON.stringify(node))
   }
-
+  nfa.genLayout('final', 0, -maxY / 2)
   return nfa
 }
 
@@ -245,6 +221,8 @@ export function epsilonNFAtoNFA(enfa: Graph) {
     for (const v of closure) {
       const letterMoves = getLetterMoves(nfa, v)
       for (const letterMove of letterMoves) {
+        nfa.addEdge(vertex, letterMove.vertex, letterMove.letter)
+        console.log('Added: from ', vertex, ' to ', letterMove.vertex, ' with ', letterMove.letter)
         const closure2 = getEpsilonClosure(nfa, letterMove.vertex)
         for (const v2 of closure2) {
           nfa.addEdge(vertex, v2, letterMove.letter)
@@ -260,10 +238,12 @@ export function epsilonNFAtoNFA(enfa: Graph) {
       }
     }
   }
+  console.log('NFA ADJ LIST: ', nfa.getAdjacencyList())
   // Remove epsilon edges
   for (const [vertex, edges] of nfa.getAdjacencyList().entries()) {
     for (const edge of edges) {
       if (edge.letter === 'e') {
+        console.log('Removing edge: from ', vertex, ' to ', edge.vertex, ' with ', edge.letter)
         nfa.removeEdge(vertex, edge.vertex, edge.letter)
       }
     }
@@ -272,18 +252,6 @@ export function epsilonNFAtoNFA(enfa: Graph) {
   // Assign layout
   nfa.genLayout('final', 0, -maxY / 2)
 
-  // Remove vertices accessible only by previously existent epsilon edges
-  for (const [vertex, edges] of nfa.getIncomingEdges().entries()) {
-    if (vertex === 'start') continue
-    let allEdgesEpsilon = true
-    for (const edge of edges) {
-      if (edge.letter !== 'e') {
-        allEdgesEpsilon = false
-        break
-      }
-    }
-    if (allEdgesEpsilon) nfa.removeVertex(vertex)
-  }
   // Remove unaccessible vertices
   nfa.removeInaccessibleVertices()
 
@@ -338,13 +306,13 @@ export function nfaToDFA(nfa: Graph) {
   })
   // dfa.removeInaccessibleVertices()
   dfa.getAdjacencyList().forEach((edges, vertex) => {
-    if (vertex.includes('final')) {
+    const realVertices = vertex.split(', ')
+    if (realVertices.some((v) => nfa.getFinalStates().has(v))) {
       dfa.makeFinal(vertex)
     }
   })
   dfa.removeInaccessibleVertices()
   const someFinalState = Array.from(dfa.getFinalStates())[0]
-  console.log('someFinalState', someFinalState)
   dfa.genLayout(someFinalState, 0, -maxY / 2)
 
   return dfa

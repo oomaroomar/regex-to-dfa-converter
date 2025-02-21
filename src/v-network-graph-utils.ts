@@ -26,8 +26,9 @@ export function graphToVNetworkGraph(graph: Graph) {
         selfEdges += edge.letter
       }
     })
-    const name = selfEdges.length > 0 ? counter.toString() + ': ' + selfEdges : counter.toString()
-    vNFAnodes.value[vertex] = { name: vertex === 'start' ? 'start' : name, color: 'white' }
+    let name = vertex === 'start' ? 'start' : counter.toString()
+    name += selfEdges.length > 0 ? ': ' + selfEdges : ''
+    vNFAnodes.value[vertex] = { name: name, color: 'white' }
     counter++
     if (graph.getFinalStates().has(vertex)) {
       vNFAnodes.value[vertex].color = '#4BB543'
